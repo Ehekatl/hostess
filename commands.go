@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"strings"
 
@@ -112,8 +113,7 @@ func Add(c *cli.Context) {
 	// Note that Add() may return an error, but they are informational only. We
 	// don't actually care what the error is -- we just want to add the
 	// hostname and save the file. This way the behavior is idempotent.
-	hostsfile.Hosts.Add(hostname)
-
+	hostsfile.Hosts.UnsafeAdd(hostname)
 	// If the user passes -n then we'll Add and show the new hosts file, but
 	// not save it.
 	if c.Bool("n") || AnyBool(c, "n") {
@@ -134,20 +134,32 @@ func Add(c *cli.Context) {
 
 // Del command removes any hostname(s) matching <domain> from the hosts file
 func Del(c *cli.Context) {
-	if len(c.Args()) != 1 {
-		MaybeError(c, "expected <hostname>")
+	if len(c.Args()) != 1 && len(c.Args()) != 2 {
+		MaybeError(c, "expected <hostname> or <hostname> <ip>")
 	}
 	domain := c.Args()[0]
 	hostsfile := MaybeLoadHostFile(c)
-
 	found := hostsfile.Hosts.ContainsDomain(domain)
 	if found {
-		hostsfile.Hosts.RemoveDomain(domain)
+		if len(c.Args()) == 2 {
+			ip := c.Args()[1]
+			if !LooksLikeIPv4(ip) && !LooksLikeIPv6(ip) {
+				MaybeError(c, fmt.Sprintf("Unable to parse IP address %q", ip))
+			}
+			IP := net.ParseIP(ip)
+			hostsfile.Hosts.RemoveDomainIP(domain, IP)
+		} else {
+			hostsfile.Hosts.RemoveDomain(domain)
+		}
 		if AnyBool(c, "n") {
 			fmt.Printf("%s", hostsfile.Format())
 		} else {
 			MaybeSaveHostFile(c, hostsfile)
-			MaybePrintln(c, fmt.Sprintf("Deleted %s", domain))
+			if len(c.Args()) == 2 {
+				MaybePrintln(c, fmt.Sprintf("Deleted %s with %s", domain, c.Args()[1]))
+			} else {
+				MaybePrintln(c, fmt.Sprintf("Deleted %s", domain))
+			}
 		}
 	} else {
 		MaybePrintln(c, fmt.Sprintf("%s not found in %s", domain, GetHostsPath()))

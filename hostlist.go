@@ -170,6 +170,24 @@ func (h *Hostlist) ContainsIP(IP net.IP) bool {
 	return false
 }
 
+// UnsafeAdd allow conflict hostname but disallow duplicates, specifically designed for agora backend application
+func (h *Hostlist) UnsafeAdd(hostnamev *Hostname) error {
+	hn, err := NewHostname(hostnamev.Domain, hostnamev.IP.String(), hostnamev.Enabled)
+	if err != nil {
+		return err
+	}
+
+	for _, found := range *h {
+		if found.Equal(hn) {
+			return fmt.Errorf("Duplicate hostname entry for %s -> %s",
+				hn.Domain, hn.IP)
+		}
+	}
+
+	*h = append(*h, hn)
+	return nil
+}
+
 // Add a new Hostname to this hostlist. Add uses some merging logic in the
 // event it finds duplicated hostnames. In the case of a conflict (incompatible
 // entries) the last write wins. In the case of duplicates, duplicates will be
@@ -230,6 +248,17 @@ func (h *Hostlist) IndexOfDomainV(domain string, version int) int {
 	return -1
 }
 
+// IndexOfDomainIP will indicate the index of a Hostname in Hostlist that has
+// the same domain and IP, or -1 if it is not found.
+func (h *Hostlist) IndexOfDomainIP(domain string, ip net.IP) int {
+	for index, hostname := range *h {
+		if hostname.Domain == domain && hostname.IP.Equal(ip) {
+			return index
+		}
+	}
+	return -1
+}
+
 // Remove will delete the Hostname at the specified index. If index is out of
 // bounds (i.e. -1), Remove silently no-ops. Remove returns the number of items
 // removed (0 or 1).
@@ -249,7 +278,20 @@ func (h *Hostlist) RemoveDomain(domain string) int {
 
 // RemoveDomainV removes a Hostname entry matching the domain and IP version.
 func (h *Hostlist) RemoveDomainV(domain string, version int) int {
-	return h.Remove(h.IndexOfDomainV(domain, version))
+	totalRemoved := 0
+	for {
+		i := h.IndexOfDomainV(domain, version)
+		if i < 0 {
+			break
+		}
+		totalRemoved = totalRemoved + h.Remove(i)
+	}
+	return totalRemoved
+}
+
+// RemoveDomainIP removes a Hostname entry matching the domain and IP.
+func (h *Hostlist) RemoveDomainIP(domain string, ip net.IP) int {
+	return h.Remove(h.IndexOfDomainIP(domain, ip))
 }
 
 // Enable will change any Hostnames matching domain to be enabled.
@@ -430,7 +472,7 @@ func (h *Hostlist) Apply(jsonbytes []byte) error {
 	}
 
 	for _, hostname := range hostnames {
-		h.Add(hostname)
+		h.UnsafeAdd(hostname)
 	}
 
 	return nil

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/cbednarski/hostess"
+	"github.com/Ehekatl/hostess"
 	"github.com/codegangsta/cli"
 )
 
