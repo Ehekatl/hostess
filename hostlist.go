@@ -495,3 +495,89 @@ func (h *Hostlist) Apply(jsonbytes []byte) error {
 
 	return nil
 }
+
+func ParseHostList(b []byte) (*Hostlist, error) {
+	hl := Hostlist{}
+	rows := strings.Split(string(b), "\n")
+
+loop:
+	for _, r := range rows {
+		// skip on comments
+		if strings.HasPrefix(r, "#") {
+			continue
+		}
+
+		if strings.HasPrefix(r, "//") {
+			continue
+		}
+
+		fields := strings.Fields(r)
+
+		switch len(fields) {
+		case 0:
+			// ignore empty line
+			continue loop
+		case 2:
+			break
+		default:
+			return nil, fmt.Errorf("invalid hostlist format")
+		}
+
+		hn := Hostname{Enabled: true}
+		for i, v := range fields {
+			switch i {
+			case 0:
+				ip := net.ParseIP(v)
+				if ip != nil {
+					hn.IP = ip
+					if ip.To4() == nil {
+						hn.IPv6 = true
+					}
+				}
+			case 1:
+				hn.Domain = v
+			}
+		}
+
+		hl = append(hl, &hn)
+	}
+	return &hl, nil
+}
+
+// ApplyList imports all entries from the list input to this Hostlist
+func (h *Hostlist) ApplyList(b []byte) error {
+	hl, err := ParseHostList(b)
+	if err != nil {
+		return err
+	}
+
+	for _, hn := range *hl {
+		if err := h.UnsafeAdd(hn); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ReplaceList imports all entries from the list input to this Hostlist and REPLACE the original hostname
+func (h *Hostlist) ReplaceList(b []byte) error {
+	hl, err := ParseHostList(b)
+	if err != nil {
+		return err
+	}
+
+	if hl == nil {
+		return nil
+	}
+
+	for _, hn := range *hl {
+		h.RemoveDomain(hn.Domain)
+	}
+
+	for _, hn := range *hl {
+		if err := h.UnsafeAdd(hn); err != nil {
+			return err
+		}
+	}
+	return nil
+}

@@ -299,3 +299,47 @@ func Apply(c *cli.Context) {
 	MaybeSaveHostFile(c, hostfile)
 	MaybePrintln(c, fmt.Sprintf("%s applied", filename))
 }
+
+// ApplyList command adds hostnames to the hosts file from space separate list
+func ApplyList(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		MaybeError(c, "Usage should be apply [filename]")
+	}
+	filename := c.Args()[0]
+
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Unable to read %s: %s", filename, err))
+	}
+
+	hostfile := AlwaysLoadHostFile(c)
+	err = hostfile.Hosts.ApplyList(bytes)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Error applying changes to hosts file: %s", err))
+	}
+
+	MaybeSaveHostFile(c, hostfile)
+	MaybePrintln(c, fmt.Sprintf("%s applied", filename))
+}
+
+// ReplaceList command adds hostnames to the hosts file from space separate list
+func ReplaceList(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		MaybeError(c, "Usage should be apply [filename]")
+	}
+	filename := c.Args()[0]
+
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Unable to read %s: %s", filename, err))
+	}
+
+	hostfile := AlwaysLoadHostFile(c)
+	err = hostfile.Hosts.ReplaceList(bytes)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Error applying changes to hosts file: %s", err))
+	}
+
+	MaybeSaveHostFile(c, hostfile)
+	MaybePrintln(c, fmt.Sprintf("%s applied", filename))
+}
