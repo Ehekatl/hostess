@@ -30,7 +30,7 @@ gox:
 
 build-all: test
 	which gox || make gox
-	gox -arch="386 amd64 arm" -os="darwin linux windows" github.com/cbednarski/hostess/cmd/hostess
+	gox -arch="386 amd64 arm" -os="darwin linux windows" ./cmd/hostess
 
 install: hostess
 	mkdir -p $(bindir)

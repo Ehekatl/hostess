@@ -118,6 +118,18 @@ func main() {
 			Action: hostess.Apply,
 			Flags:  app.Flags,
 		},
+		{
+			Name:   "apply-list",
+			Usage:  "add hostnames from a space separate list to the hosts file (syntax: ip domain)",
+			Action: hostess.ApplyList,
+			Flags:  app.Flags,
+		},
+		{
+			Name:   "replace-list",
+			Usage:  "replace hostnames from a space separate list to the hosts file (syntax: ip domain)",
+			Action: hostess.ReplaceList,
+			Flags:  app.Flags,
+		},
 	}
 
 	app.Run(os.Args)

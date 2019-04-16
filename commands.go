@@ -112,8 +112,7 @@ func Add(c *cli.Context) {
 	// Note that Add() may return an error, but they are informational only. We
 	// don't actually care what the error is -- we just want to add the
 	// hostname and save the file. This way the behavior is idempotent.
-	hostsfile.Hosts.Add(hostname)
-
+	hostsfile.Hosts.UnsafeAdd(hostname)
 	// If the user passes -n then we'll Add and show the new hosts file, but
 	// not save it.
 	if c.Bool("n") || AnyBool(c, "n") {
@@ -280,6 +279,50 @@ func Apply(c *cli.Context) {
 
 	hostfile := AlwaysLoadHostFile(c)
 	err = hostfile.Hosts.Apply(jsonbytes)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Error applying changes to hosts file: %s", err))
+	}
+
+	MaybeSaveHostFile(c, hostfile)
+	MaybePrintln(c, fmt.Sprintf("%s applied", filename))
+}
+
+// ApplyList command adds hostnames to the hosts file from space separate list
+func ApplyList(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		MaybeError(c, "Usage should be apply [filename]")
+	}
+	filename := c.Args()[0]
+
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Unable to read %s: %s", filename, err))
+	}
+
+	hostfile := AlwaysLoadHostFile(c)
+	err = hostfile.Hosts.ApplyList(bytes)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Error applying changes to hosts file: %s", err))
+	}
+
+	MaybeSaveHostFile(c, hostfile)
+	MaybePrintln(c, fmt.Sprintf("%s applied", filename))
+}
+
+// ReplaceList command adds hostnames to the hosts file from space separate list
+func ReplaceList(c *cli.Context) {
+	if len(c.Args()) != 1 {
+		MaybeError(c, "Usage should be apply [filename]")
+	}
+	filename := c.Args()[0]
+
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		MaybeError(c, fmt.Sprintf("Unable to read %s: %s", filename, err))
+	}
+
+	hostfile := AlwaysLoadHostFile(c)
+	err = hostfile.Hosts.ReplaceList(bytes)
 	if err != nil {
 		MaybeError(c, fmt.Sprintf("Error applying changes to hosts file: %s", err))
 	}

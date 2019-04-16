@@ -138,7 +138,7 @@ func (h *Hostfile) Parse() []error {
 		// 	log.Printf("Error parsing line %d: %s\n", line, err)
 		// }
 		for _, hostname := range hostnames {
-			err := h.Hosts.Add(hostname)
+			err := h.Hosts.UnsafeAdd(hostname)
 			if err != nil {
 				errs = append(errs, err)
 			}
