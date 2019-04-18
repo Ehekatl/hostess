@@ -267,7 +267,15 @@ func (h *Hostlist) RemoveDomain(domain string) int {
 
 // RemoveDomainV removes a Hostname entry matching the domain and IP version.
 func (h *Hostlist) RemoveDomainV(domain string, version int) int {
-	return h.Remove(h.IndexOfDomainV(domain, version))
+	count := 0
+	for {
+		idx := h.IndexOfDomainV(domain, version)
+		if idx == -1 {
+			break
+		}
+		count = count + h.Remove(idx)
+	}
+	return count
 }
 
 // Enable will change any Hostnames matching domain to be enabled.
