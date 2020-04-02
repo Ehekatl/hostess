@@ -95,6 +95,24 @@ func (h Hostlist) Less(A, B int) bool {
 		max = bLength
 	}
 
+	// fqdn should come at first
+	isAFQDN := false
+	isBFQDN := false
+	if h[A].Domain[aLength-1] == '.' {
+		isAFQDN = true
+	}
+	if h[B].Domain[bLength-1] == '.' {
+		isBFQDN = true
+	}
+	if !(isAFQDN && isBFQDN) {
+		if isAFQDN {
+			return true
+		}
+		if isBFQDN {
+			return false
+		}
+	}
+
 	// Sort domains alphabetically
 	// TODO: This works best if domains are lowercased. However, we do not
 	// enforce lowercase because of UTF-8 domain names, which may be broken by
